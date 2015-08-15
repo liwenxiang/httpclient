@@ -1,11 +1,14 @@
 package name.codeboy.httpclient;
 
 import io.netty.bootstrap.Bootstrap;
+import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.EventLoopGroup;
+import io.netty.channel.epoll.EpollEventLoopGroup;
+import io.netty.channel.epoll.EpollSocketChannel;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
@@ -39,6 +42,7 @@ public class HttpClient implements ChannalCloseListener {
 		this.maxUseLocalPortNum = maxUseLocalPortNum;
 		sendHandler = new HttpClientHandler(msgQueue, this);
 		group = new NioEventLoopGroup(threadNum);
+		//group = new EpollEventLoopGroup(threadNum);
 	}
 	
 	public void stop() {
@@ -48,9 +52,14 @@ public class HttpClient implements ChannalCloseListener {
 	public void init() {
 		b.group(group);
 		b.channel(NioSocketChannel.class);
+		//b.channel(EpollSocketChannel.class);
+		b.option(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT);
 		b.option(ChannelOption.SO_KEEPALIVE, true);
 		b.option(ChannelOption.TCP_NODELAY, true);
 		b.option(ChannelOption.SO_REUSEADDR, true);
+		b.option(ChannelOption.WRITE_BUFFER_HIGH_WATER_MARK, 32 * 1024);
+		b.option(ChannelOption.WRITE_BUFFER_LOW_WATER_MARK, 8 * 1024);
+
         b.handler(new ChannelInitializer<SocketChannel>() {
             @Override
             public void initChannel(SocketChannel ch) throws Exception {

@@ -34,19 +34,16 @@ public class HttpClientHandler extends ChannelDuplexHandler {
 	}
 
     
-    void writeMessage(ChannelHandlerContext ctx) {
+    void writeMessage(ChannelHandlerContext ctx) throws InterruptedException {
     	logger.debug("begin to write msg");
-    	if (!ctx.channel().isOpen()) {
-    		logger.error("get error, socket has closed");
+    	if (!ctx.channel().isWritable()) {
     		return;
     	}
-    	RequestMessage msg = null;
-		try {
-			msg = msgQueue.poll(0, TimeUnit.SECONDS);
-		} catch (InterruptedException e) {
-    		logger.error("get error {}", e);
-    		return ;
-		}
+    	if (msgQueue.isEmpty()) {
+    		return;
+    		
+    	}
+    	final RequestMessage msg = msgQueue.poll(0, TimeUnit.SECONDS);
 		if (msg == null) {
     		logger.debug("get empty msg");
     		return;
@@ -61,14 +58,22 @@ public class HttpClientHandler extends ChannelDuplexHandler {
 		HttpHeaders.setHeader(request, HttpHeaders.Names.CONNECTION, HttpHeaders.Values.KEEP_ALIVE);
 		
     	logger.trace("write msg {}", request);
-    	ChannelFuture writeFuture = ctx.channel().writeAndFlush(request);
+    	ChannelFuture writeFuture = ctx.writeAndFlush(request);
     	writeFuture.addListener(f -> {
-    		//logger.info("write end");
     		if (writeFuture.isDone() && writeFuture.isSuccess()) {
     		    logger.debug("Send success");
     		} else {
     		    logger.error("Send failed: " +  writeFuture.cause());
-    		    //TODO, reinsert msg to queue
+    		    ctx.channel().eventLoop().execute(new Runnable() {
+					@Override
+					public void run() {
+						try {
+							msgQueue.put(msg);
+						} catch (InterruptedException e) {
+							e.printStackTrace();
+						}
+					}
+    		    });
     		}
     	}); 
     }
@@ -77,6 +82,11 @@ public class HttpClientHandler extends ChannelDuplexHandler {
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
     	logger.info("conn complete");
     	writeMessage(ctx);
+    }
+    
+    @Override
+    public void channelWritabilityChanged(ChannelHandlerContext ctx) throws Exception {
+		writeMessage(ctx);
     }
 	
 	@Override
