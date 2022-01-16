@@ -5,3 +5,7 @@
 .DS_Store
 .metadata/
 target/*
+.idea/*
+.idea/**
+*.iml
+httpclient.iml

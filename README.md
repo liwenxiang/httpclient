@@ -2,11 +2,14 @@
 a http client to send request as fast as possible 
 use netty async model
 ## use method
- -d <host>              dst_host
- -f <f>                 urlfile
- -n <uselocalportnum>   uselocalportnum
+ -h <host>              dst_host
  -p <port>              dst_port
+ -f <file>              inputfile
+ -n <uselocalportnum>   uselocalportnum
+ -q <qpslimit>          qpslimit
  -t <thead_num>         thead_num
+ -fc <fileReuseCount>   fileReuseCount
+
 ### example 
-    java -jar ../httpclient-0.0.1-SNAPSHOT.jar  -f test.url -d 127.0.0.1  -p 80 -n 20000 -t 8
-    test.url is a file every line is a url
+    java -jar target/httpclient-0.0.1-SNAPSHOT.jar  -h www.baidu.com -f a.url -n 10 -p 80 -q 12 -t 2 -fc 3
+    a.url is a file every line is a url
